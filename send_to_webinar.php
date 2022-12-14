@@ -27,7 +27,7 @@ $newAmoLead = amoSetRegisteredLead($pipeline, $token_file, $subdomain, $client_i
 //     ),
 //   )
 
-$userData['name'] = $userData['name'] . ' (' . $newAmoLead['id'] . ')';
+$userData['name'] = $userData['name'] . ' ' . $newAmoLead['id'];
 
 addNewAttendee($userData, $apiKey); //добавление пользователя к вебинару
 
