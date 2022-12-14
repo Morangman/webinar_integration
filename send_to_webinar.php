@@ -193,7 +193,7 @@ function amoSetRegisteredLead($pipeline, $token_file, $subdomain, $client_id, $c
     
     $data = [
         [
-            "name" => 'Регистрация / ' . strtotime(date("d.m.Y H:i")),
+            "name" => 'Регистрация / ' . date("d.m.Y H:i"),
             "pipeline_id" => (int) $pipeline_id,
             "status_id" => (int) $status_id,
             "_embedded" => [
