@@ -1,7 +1,7 @@
 <?php
 
 require_once 'config.php';
-// require_once 'amo_access.php';
+require_once 'amo_access.php';
 
 $apiKey = $webinarApiKey;
 
