@@ -55,6 +55,8 @@ function addNewAttendee(array $clientData = [], $apiKey = null) {
     
         $res = makeCurl($data);
 
+        pp($res);
+
         if (isset($res['response']) && isset($res['response']['success'])) {
             clog($clientData['email'] . ' ' . $res['response']['success']);
         } else {
