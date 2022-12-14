@@ -1,0 +1,20 @@
+<?php
+$webinarApiKey = '2fc4f8d89c808cf2de7c3b416138b5ef'; //апи ключ mywebinar
+
+
+// $subdomain     = 'newlevelcg'; // поддомен AmoCRM
+// $client_secret = 'fdQLUz5RgVCKtR1nWlPxVNAHXYVekuj83NGzPYwQcar4D7k0KQF7WH8b8i2WCZga'; // Секретный ключ
+// $client_id     = 'de2bc87d-5436-4dea-865c-4c7f5f749438'; // ID интеграции
+// $code          = 'def5020057b66b00be579435d7b1a3893f7624da1aa949d367ab2df68e28966831f7f9aee4d8e7a298d34422bad6bd26821d2866b8c88ec0e9a813dfa22019ec602263d6336f56a80e33c77c30e17e18370f8855bafe4f8c17ccab7323c9461d4f3109517cbc1cec5ab14af8929173260343a76b871dd843b0644c524cb05e69fb1060d122e1a20c5997f3743b0b435ef7df2094088b326223810f0a1d4ddf0f8f624430886df4f626831c080c8aa13659c825852f672ec755933df1fa6218bd7e64c0fa684beeba29cddd158996f20412dd8e30b8cbec0d1b20c6f002e8ebf17ea0fd4b04a4b79aec8049e402e5e116207843a1f3a5041a7162484eab041013029386ec781ef61d5dec7ac57cece7e84b77c140beef0419a2d0742a72633345a76c171ed879beff94489dc255125c949e2ac38a7d72c8b213e3a5e8fc4fe583f995696204ed221859d70eb773ec8344acedc2ecb0d8b9f0b4dc822eed6be9f2af134b4c3d3d17881f184c55cd21a4121d5e12fcb488dbba2ed8cef7ea3590e85ff5b0971378fde9eb1acc65efec376862d1d76e99965f76ee31e14c6b702c818577dc5c93fe68183b67d9e37a30a667688a6a6382e26244ccec1755eefca4d76f0e0067dd32e5e46086c26534'; // Код авторизации
+// $token_file    = 'tokens.txt';
+// $redirect_uri  = 'https://webinar.levelamz.com/amo.php';
+// $pipeline = '1104961'; //идентификатор воронки с АмоЦрм
+
+// тестовые данные
+$subdomain     = 'indominussstudio'; // поддомен AmoCRM
+$client_secret = 'WROPY6RQTrOwDMwD09JVxIRUBF7G5c74lqWenDjC3E38vXH4WHlvfkxavcSdFopm'; // Секретный ключ
+$client_id     = '6cd5610c-c879-4880-be10-b5b9ca4f3a4c'; // ID интеграции
+$code          = 'def50200d7493aab8b146c0256541f8e5f20e1e60799085bde765080f0a7d69203b7090657e8b6d76c7547fd46350e0296b3d01bc002ec5383ebcdd9ae801a598f4fdd77d4695264369dbe3f11511c58bf025059ae51daa1b5ee97bc9986b30e20b6de65e1ff9e018442d8b895befed661bb85187ea600ddd6a7ff8bb897905300a97c7d7e929667f325c3af828baad83489b6d0fae734b90eeb87a78ae18936933a680c641319516320d4d5b032e6f4d1bb5ee8d5160028ef1699dbc383bbf614af2dfe64ed6f9ca058d122d6f065ad9016394c52c8e58ab0979762b2c48a2998c12ea87c22829ebda237a148dc5c40ea44b558e7b8bdab741900999ff4cbc0b5ebffd41bc730a7e72993900992d782a07cc124b73ce839c654be61ec300c73909cae5e8d20a77dd0835ba475c4d88be511564b542a912f45fa79ed5714ec4c0b1bb29b25bac8a1b94daeac849c46daecdda3e6e1377dbc250c1080b1aa4a507a7beb5d5976b0c6b53ab6774bd06576ac857a1e5b324ef9483fe901f65b36981c95d865a02d6e6e8c96d59f3f327514393e2d85f86e4ce7a7b2e30ac16c151b080a94a26722e2f27989ee29da74ea93069cf4bb59f34790d73afae96db7299556705f997ee0296ef727a9167db41ea85a83a3920d4ddb8b5ec82f6c49f9962988a36ae4'; // Код авторизации
+$token_file    = 'tokens.txt';
+$redirect_uri  = 'https://sinepolsky.website/amo.php';
+$pipeline = '6205946'; //идентификатор воронки с АмоЦрм
