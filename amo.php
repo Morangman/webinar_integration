@@ -1,19 +1,57 @@
 <?php
 
 require_once 'config.php';
+require_once 'amo_access.php';
 
 $apiKey = $webinarApiKey;
 
 $access_token = '';
 
-// getLastWebinarInfoChats(getLastWebinar($apiKey), $apiKey); //информация о чате последнего прошедшего вебинара
-// getLastWebinarInfoVisits(getLastWebinar($apiKey), $apiKey); //информация о посещениях последнего прошедшего вебинара
+$users = [];
+$chat_leads = [];
+$leads = [];
 
-amoAuth($subdomain, $client_id, $client_secret, $code, $redirect_uri, $token_file);
+$webinarUsers = getUsersFromWebinar(getLastWebinar($apiKey), $apiKey); // список учасников вебинара
 
-amoRefreshToken($subdomain, $client_id, $client_secret, $code, $redirect_uri, $token_file);
+foreach ($webinarUsers as $u) {
+    $users[$u['email']] = $u;
+}
 
-amoSetLead($access_token, $pipeline);
+$leadsChatsData = getLastWebinarInfoChats(getLastWebinar($apiKey), $apiKey); //информация о чате последнего прошедшего вебинара
+
+foreach ($leadsChatsData as $c) {
+    $chat_leads[$c[4]][] = $c;
+}
+
+$leadsVisitsData = getLastWebinarInfoVisits(getLastWebinar($apiKey), $apiKey); //информация о посещениях последнего прошедшего вебинара
+
+foreach ($leadsVisitsData as $l) {
+    if (!isset($chat_leads[$l[1]])) {
+        $leads[$l[1]][] = $l;
+    }
+}
+
+foreach ($chat_leads as $key => $cl) {
+    if (isset($users[$key])) {
+        $users[$key]['chat'] = $cl;
+    }
+}
+foreach ($leads as $key => $vl) {
+    if (isset($users[$key])) {
+        $users[$key]['visitor'] = $vl;
+    }
+}
+
+// pp($users);
+
+foreach ($users as $leadUser) {
+    if (isset($leadUser['chat']) && count($leadUser['chat']) && !isset($leadUser['visitor']) && !count($leadUser['visitor'])) {
+        amoSetLead($pipeline, $token_file, $subdomain, $code, $amo_status_webinar_chat_id, $leadUser, 'chat');
+    }
+    if (isset($leadUser['visitor']) && count($leadUser['visitor']) && !isset($leadUser['chat']) && !count($leadUser['chat'])) {
+        amoSetLead($pipeline, $token_file, $subdomain, $code, $amo_status_webinar_id, $leadUser, 'visitor');
+    }
+}
 
 function getLastWebinar($apiKey = null) {
     if ($apiKey) {
@@ -46,6 +84,37 @@ function getLastWebinar($apiKey = null) {
     return null;
 }
 
+function getUsersFromWebinar($alias, $apiKey = null) {
+    if ($apiKey) {
+        $data['request'] = json_encode([
+            "key" => $apiKey,
+            "action" =>"attendeesList",
+            "params" => [
+                "fields"=>[
+                    "name",
+                    "email",
+                    "phone",
+                    "company"
+                ],
+                "alias" => $alias,
+            ]
+        ]);
+    
+        $res = makeCurl($data);
+        // вывод результатов
+    
+        // pp($res);
+
+        if (isset($res['response']['list'])) {
+            return $res['response']['list'];
+        } else {
+            return [];
+        }
+    }
+
+    return [];
+}
+
 function getLastWebinarInfoChats($alias, $apiKey = null) {
     if ($apiKey) {
         $data['request'] = json_encode([
@@ -60,12 +129,16 @@ function getLastWebinarInfoChats($alias, $apiKey = null) {
         $res = makeCurl($data);
         // вывод результатов
     
-        pp($res);
-    
-        // $lastActiveWebinar = end($res['response']);
+        // pp($res);
+
+        if (isset($res['response'])) {
+            return $res['response'];
+        } else {
+            return [];
+        }
     }
 
-    return null;
+    return [];
 }
 function getLastWebinarInfoVisits($alias, $apiKey = null) {
     if ($apiKey) {
@@ -81,12 +154,16 @@ function getLastWebinarInfoVisits($alias, $apiKey = null) {
         $res = makeCurl($data);
         // вывод результатов
     
-        pp($res);
+        // pp($res);
     
-        // $lastActiveWebinar = end($res['response']);
+        if (isset($res['response'])) {
+            return $res['response'];
+        } else {
+            return [];
+        }
     }
 
-    return null;
+    return [];
 }
 
 function makeCurl($data) {
@@ -129,176 +206,29 @@ function clog($log_msg)
 
 //AmoCrm
 
-function amoAuth($subdomain, $client_id, $client_secret, $code, $redirect_uri, $token_file) {
-    $dataToken = file_get_contents($token_file);
-    $dataToken = json_decode($dataToken, true);
-
-    if ($dataToken && !isset($dataToken["endTokenTime"])) {
-        $link = "https://$subdomain.amocrm.ru/oauth2/access_token";
-
-        $data = [
-        'client_id' => $client_id,
-        'client_secret' => $client_secret,
-        'grant_type' => 'authorization_code',
-        'code' => $code,
-        'redirect_uri' => $redirect_uri,
-        ];
+function amoSetLead($pipeline, $token_file, $subdomain, $code, $status_id, $user, $type) {
+    $name = $user['name'];
+    $phone = $user['phone'];
+    $email = $user['email'];
     
-        $curl = curl_init();
-        curl_setopt($curl,CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl,CURLOPT_USERAGENT,'amoCRM-oAuth-client/1.0');
-        curl_setopt($curl,CURLOPT_URL, $link);
-        curl_setopt($curl,CURLOPT_HTTPHEADER, ['Content-Type:application/json']);
-        curl_setopt($curl,CURLOPT_HEADER, false);
-        curl_setopt($curl,CURLOPT_CUSTOMREQUEST, 'POST');
-        curl_setopt($curl,CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($curl,CURLOPT_SSL_VERIFYPEER, 1);
-        curl_setopt($curl,CURLOPT_SSL_VERIFYHOST, 2);
-        $out = curl_exec($curl);
-        $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-        $code = (int)$code;
-        
-        $errors = [
-            301 => 'Moved permanently.',
-            400 => 'Wrong structure of the array of transmitted data, or invalid identifiers of custom fields.',
-            401 => 'Not Authorized. There is no account information on the server. You need to make a request to another server on the transmitted IP.',
-            403 => 'The account is blocked, for repeatedly exceeding the number of requests per second.',
-            404 => 'Not found.',
-            500 => 'Internal server error.',
-            502 => 'Bad gateway.',
-            503 => 'Service unavailable.'
-        ];
-    
-        if ($code < 200 || $code > 204) die( "Error $code. " . (isset($errors[$code]) ? $errors[$code] : 'Undefined error') );
-        
-        
-        $response = json_decode($out, true);
-        
-        $arrParamsAmo = [
-            "access_token"  => $response['access_token'],
-            "refresh_token" => $response['refresh_token'],
-            "token_type"    => $response['token_type'],
-            "expires_in"    => $response['expires_in'],
-            "endTokenTime"  => $response['expires_in'] + time(),
-        ];
-        
-        $arrParamsAmo = json_encode($arrParamsAmo);
-        
-        $f = fopen($token_file, 'w');
-        fwrite($f, $arrParamsAmo);
-        fclose($f);
-
-        $access_token = $response["access_token"];
-
-        clog('Amo Auth success! New token: ' . $access_token);
-    }
-}
-
-function amoRefreshToken($subdomain, $client_id, $client_secret, $code, $redirect_uri, $token_file) {
     $dataToken = file_get_contents($token_file);
     $dataToken = json_decode($dataToken, true);
     
-    if ($dataToken["endTokenTime"] - 60 < time()) {
-    
-        $link = "https://$subdomain.amocrm.ru/oauth2/access_token";
-    
-        $data = [
-            'client_id'     => $client_id,
-            'client_secret' => $client_secret,
-            'grant_type'    => 'refresh_token',
-            'refresh_token' => $dataToken["refresh_token"],
-            'redirect_uri'  => $redirect_uri,
-        ];
-    
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_USERAGENT, 'amoCRM-oAuth-client/1.0');
-        curl_setopt($curl, CURLOPT_URL, $link);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type:application/json']);
-        curl_setopt($curl, CURLOPT_HEADER, false);
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 1);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-        $out = curl_exec($curl);
-        $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-    
-        $code = (int)$code;
-        $errors = [
-            301 => 'Moved permanently.',
-            400 => 'Wrong structure of the array of transmitted data, or invalid identifiers of custom fields.',
-            401 => 'Not Authorized. There is no account information on the server. You need to make a request to another server on the transmitted IP.',
-            403 => 'The account is blocked, for repeatedly exceeding the number of requests per second.',
-            404 => 'Not found.',
-            500 => 'Internal server error.',
-            502 => 'Bad gateway.',
-            503 => 'Service unavailable.'
-        ];
-    
-        if ($code < 200 || $code > 204) die( "Error $code. " . (isset($errors[$code]) ? $errors[$code] : 'Undefined error') );
-    
-        $response = json_decode($out, true);
-    
-        $arrParamsAmo = [
-            "access_token"  => $response['access_token'],
-            "refresh_token" => $response['refresh_token'],
-            "token_type"    => $response['token_type'],
-            "expires_in"    => $response['expires_in'],
-            "endTokenTime"  => $response['expires_in'] + time(),
-        ];
-    
-        $arrParamsAmo = json_encode($arrParamsAmo);
-    
-        $f = fopen($token_file, 'w');
-        fwrite($f, $arrParamsAmo);
-        fclose($f);
-    
-        $access_token = $response['access_token'];
-
-        clog('Amo refresh token success! New token: ' . $access_token);
-    
-    } else {
-        $access_token = $dataToken["access_token"];
-    }
-}
-
-function amoSetLead($access_token, $pipeline) {
-    $name = 'Имя клиента';
-    $phone = '+380123456789';
-    $email = 'email@gmail.com';
-    $target = 'Цель';
-    $company = 'Название компании';
-    
-    $custom_field_id = 0;
-    $custom_field_value = 'тест';
+    $access_token = $dataToken["access_token"];
     
     $ip = '1.2.3.4';
-    $domain = 'site.ua';
-    $price = 0;
-    $pipeline_id = $pipeline;
-    $user_amo = 0;
-    
-    $utm_source   = '';
-    $utm_content  = '';
-    $utm_medium   = '';
-    $utm_campaign = '';
-    $utm_term     = '';
-    $utm_referrer = '';
+    $domain = 'webinar.levelamz.com';
     
     $data = [
         [
-            "name" => $phone,
-            "price" => $price,
-            "responsible_user_id" => (int) $user_amo,
-            "pipeline_id" => (int) $pipeline_id,
+            "name" => $name,
+            "pipeline_id" => (int) $pipeline,
+            "status_id" => (int) $status_id,
             "_embedded" => [
                 "metadata" => [
                     "category" => "forms",
                     "form_id" => 1,
                     "form_name" => "Форма на сайте",
-                    "form_page" => $target,
                     "form_sent_at" => strtotime(date("Y-m-d H:i:s")),
                     "ip" => $ip,
                     "referer" => $domain
@@ -324,74 +254,11 @@ function amoSetLead($access_token, $pipeline) {
                                         "value" => $phone
                                     ]
                                 ]
-                            ],
-                            [
-                                "field_id" => (int) $custom_field_id,
-                                "values" => [
-                                    [
-                                        "value" => $custom_field_value
-                                    ]
-                                ]
                             ]
                         ]
                     ]
-                ],
-                "companies" => [
-                    [
-                        "name" => $company
-                    ]
                 ]
-            ],
-            "custom_fields_values" => [
-                [
-                    "field_code" => 'UTM_SOURCE',
-                    "values" => [
-                        [
-                            "value" => $utm_source
-                        ]
-                    ]
-                ],
-                [
-                    "field_code" => 'UTM_CONTENT',
-                    "values" => [
-                        [
-                            "value" => $utm_content
-                        ]
-                    ]
-                ],
-                [
-                    "field_code" => 'UTM_MEDIUM',
-                    "values" => [
-                        [
-                            "value" => $utm_medium
-                        ]
-                    ]
-                ],
-                [
-                    "field_code" => 'UTM_CAMPAIGN',
-                    "values" => [
-                        [
-                            "value" => $utm_campaign
-                        ]
-                    ]
-                ],
-                [
-                    "field_code" => 'UTM_TERM',
-                    "values" => [
-                        [
-                            "value" => $utm_term
-                        ]
-                    ]
-                ],
-                [
-                    "field_code" => 'UTM_REFERRER',
-                    "values" => [
-                        [
-                            "value" => $utm_referrer
-                        ]
-                    ]
-                ],
-            ],
+            ]
         ]
     ];
     
@@ -430,12 +297,46 @@ function amoSetLead($access_token, $pipeline) {
     
     if ($code < 200 || $code > 204) die( "Error $code. " . (isset($errors[$code]) ? $errors[$code] : 'Undefined error') );
     
-    
+    // получает ответ после создание лида
     $Response = json_decode($out, true);
-    $Response = $Response['_embedded']['items'];
-    $output = 'ID добавленных элементов списков:' . PHP_EOL;
-    foreach ($Response as $v)
-        if (is_array($v))
-            $output .= $v['id'] . PHP_EOL;
-    return $output;
+    
+    // проходимся по новосозданным лидам и подверждаем их автоматом
+    foreach ($Response as $res) {
+        $id = $res['id'];
+        
+        $data = [
+            "user_id" => 0,
+            "status_id" => $status_id,
+        ];
+        
+        $method = "/api/v4/leads/unsorted/$id/accept";
+        
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_USERAGENT, 'amoCRM-API-client/1.0');
+        curl_setopt($curl, CURLOPT_URL, "https://$subdomain.amocrm.ru".$method);
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HEADER, false);
+        curl_setopt($curl, CURLOPT_COOKIEFILE, 'amo/cookie.txt');
+        curl_setopt($curl, CURLOPT_COOKIEJAR, 'amo/cookie.txt');
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+        $out = curl_exec($curl);
+        $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $code = (int) $code;
+        $errors = [
+            301 => 'Moved permanently.',
+            400 => 'Wrong structure of the array of transmitted data, or invalid identifiers of custom fields.',
+            401 => 'Not Authorized. There is no account information on the server. You need to make a request to another server on the transmitted IP.',
+            403 => 'The account is blocked, for repeatedly exceeding the number of requests per second.',
+            404 => 'Not found.',
+            500 => 'Internal server error.',
+            502 => 'Bad gateway.',
+            503 => 'Service unavailable.'
+        ];
+        
+        if ($code < 200 || $code > 204) die( "Error $code. " . (isset($errors[$code]) ? $errors[$code] : 'Undefined error') );
+    }
 }

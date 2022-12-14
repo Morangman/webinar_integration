@@ -17,7 +17,7 @@ $userData = [
 
 // addNewAttendeeToLastWebinar($userData, getLastWebinar($apiKey), $apiKey); // добавление пользователя к последнему автовебинару
 
-// getUsersFromWebinar(getLastWebinar($apiKey), $apiKey);
+// getUsersFromWebinar(getLastWebinar($apiKey), $apiKey); // список учасников вебинара
 
 // getLastWebinarInfoChats(getLastWebinar($apiKey), $apiKey); //информация о чате последнего вебинара
 // getLastWebinarInfoVisits(getLastWebinar($apiKey), $apiKey); //информация о посещениях последнего вебинара

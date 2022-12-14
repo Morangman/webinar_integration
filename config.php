@@ -18,3 +18,6 @@ $code          = 'def502001cb600f60da6ee7b061e34c4b09138424113af93dd7dbfd8ee70a1
 $token_file    = 'tokens.txt';
 $redirect_uri  = 'https://sinepolsky.website/amo.php';
 $pipeline = '6205946'; //идентификатор воронки с АмоЦрм
+$amo_status_registered_id = ''; // id статус в воронке Зарегистрирован
+$amo_status_webinar_id = '53582482'; // id статус в воронке Пришел на вебинар
+$amo_status_webinar_chat_id = '53582486'; // id статус в воронке Оставил комментарий
