@@ -9,6 +9,9 @@ $webinarApiKey = '2fc4f8d89c808cf2de7c3b416138b5ef'; //апи ключ mywebinar
 // $token_file    = 'tokens.txt';
 // $redirect_uri  = 'https://webinar.levelamz.com/amo.php';
 // $pipeline = '1104961'; //идентификатор воронки с АмоЦрм
+// $amo_status_registered_id = '19385323'; // id статус в воронке Зарегистрирован
+// $amo_status_webinar_id = '21159574'; // id статус в воронке Пришел на вебинар
+// $amo_status_webinar_chat_id = '30191314'; // id статус в воронке Оставил комментарий
 
 // тестовые данные
 $subdomain     = 'indominussstudio'; // поддомен AmoCRM
