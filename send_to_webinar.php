@@ -6,9 +6,9 @@ require_once 'amo_access.php';
 $apiKey = $webinarApiKey;
 
 $userData = [
-    'name' => 'Test User',
+    'name' => 'Test User 2',
     'phone' => '0990000000',
-    'email' => 'sinepolsky.dmitry@gmail.com',
+    'email' => 'dmitry.sinepolsky@gmail.com',
     'sitename' => 'webinar_v33',
 ];
 
@@ -86,9 +86,9 @@ function getLastWebinar($apiKey = null) {
     
         // pp($res);
     
-        // $lastActiveWebinar = end($res['response']);
+        $lastActiveWebinar = end($res['response']);
 
-        $lastActiveWebinar = $res['response'][0];
+        // $lastActiveWebinar = $res['response'][0];
     
         if ($lastActiveWebinar && isset($lastActiveWebinar['alias'])) {
             return $lastActiveWebinar['alias'];
@@ -117,7 +117,7 @@ function addNewAttendeeToLastWebinar(array $clientData = [], string $alias = '',
             clog($clientData['email'] . ' ' . 'error added for alias: ' . $alias);
         }
     
-        // pp($res);
+        pp($res);
     }
 
     return null;

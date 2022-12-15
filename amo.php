@@ -15,6 +15,10 @@ $webinarUsers = getUsersFromWebinar(getLastWebinar($apiKey), $apiKey); // спи
 
 foreach ($webinarUsers as $u) {
     $users[$u['email']] = $u;
+    $matches = [];
+    $t = preg_match('/\_(.*)\_/', $u['name'], $matches);
+    
+    $users[$u['email']]['lead_id'] = (count($matches) > 1) ? (int)$matches[1] : '';
 }
 
 $leadsChatsData = getLastWebinarInfoChats(getLastWebinar($apiKey), $apiKey); //информация о чате последнего прошедшего вебинара
@@ -46,10 +50,11 @@ pp($users);
 
 foreach ($users as $leadUser) {
     if (isset($leadUser['chat']) && count($leadUser['chat']) && !isset($leadUser['visitor']) && !count($leadUser['visitor'])) {
-        amoSetLead($pipeline, $token_file, $subdomain, $client_id, $client_secret, $code, $redirect_uri, $amo_status_webinar_chat_id, $leadUser, 'chat');
+        amoUpdateLead($pipeline, $token_file, $subdomain, $client_id, $client_secret, $code, $redirect_uri, $amo_status_webinar_chat_id, $leadUser, 'chat');
     }
+    
     if (isset($leadUser['visitor']) && count($leadUser['visitor']) && !isset($leadUser['chat']) && !count($leadUser['chat'])) {
-        amoSetLead($pipeline, $token_file, $subdomain, $client_id, $client_secret, $code, $redirect_uri, $amo_status_webinar_id, $leadUser, 'visitor');
+        amoUpdateLead($pipeline, $token_file, $subdomain, $client_id, $client_secret, $code, $redirect_uri, $amo_status_webinar_id, $leadUser, 'visitor');
     }
 }
 
@@ -63,18 +68,19 @@ function getLastWebinar($apiKey = null) {
                     "name",
                     "alias"
                 ],
-                "status" => "FINISHED"
+                "status" => "FINISHED",
+                "date" => date('Y-m-d'),
             ]
         ]);
     
         $res = makeCurl($data);
         // вывод результатов
     
-        // pp($res);
+        pp($res);
     
-        // $lastActiveWebinar = end($res['response']);
+        $lastActiveWebinar = end($res['response']);
 
-        $lastActiveWebinar = $res['response'][0];
+        // $lastActiveWebinar = $res['response'][0];
     
         if ($lastActiveWebinar && isset($lastActiveWebinar['alias'])) {
             return $lastActiveWebinar['alias'];
@@ -206,7 +212,7 @@ function clog($log_msg)
 
 //AmoCrm
 
-function amoSetLead($pipeline, $token_file, $subdomain, $client_id, $client_secret, $code, $redirect_uri, $status_id, $user, $type) {
+function amoUpdateLead($pipeline, $token_file, $subdomain, $client_id, $client_secret, $code, $redirect_uri, $status_id, $user, $type) {
     $name = $user['name'];
     $phone = $user['phone'];
     $email = $user['email'];
@@ -236,54 +242,76 @@ function amoSetLead($pipeline, $token_file, $subdomain, $client_id, $client_secr
     
     $data = [
         [
-            "name" => $name,
-            "pipeline_id" => (int) $pipeline_id,
+            "id" => (int) $user['lead_id'],
+            "pipeline_id" => (int) $pipeline,
             "status_id" => (int) $status_id,
-            "_embedded" => [
-                "metadata" => [
-                    "category" => "forms",
-                    "form_id" => 1,
-                    "form_name" => "Форма на сайте",
-                    "form_page" => $target,
-                    "form_sent_at" => strtotime(date("Y-m-d H:i:s")),
-                    "ip" => $ip,
-                    "referer" => $domain
-                ],
-                "contacts" => [
-                    [
-                        "first_name" => $name,
-                        "custom_fields_values" => [
-                            [
-                                "field_code" => "EMAIL",
-                                "values" => [
-                                    [
-                                        "enum_code" => "WORK",
-                                        "value" => $email
-                                    ]
-                                ]
-                            ],
-                            [
-                                "field_code" => "PHONE",
-                                "values" => [
-                                    [
-                                        "enum_code" => "WORK",
-                                        "value" => $phone
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
         ]
     ];
     
-    $method = "/api/v4/leads/complex";
+    $method = "/api/v4/leads";
     
     $headers = [
         'Content-Type: application/json',
         'Authorization: Bearer ' . $access_token,
     ];
+    
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($curl, CURLOPT_USERAGENT, 'amoCRM-API-client/1.0');
+    curl_setopt($curl, CURLOPT_URL, "https://$subdomain.amocrm.ru".$method);
+    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PATCH');
+    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($curl, CURLOPT_HEADER, false);
+    curl_setopt($curl, CURLOPT_COOKIEFILE, 'amo/cookie.txt');
+    curl_setopt($curl, CURLOPT_COOKIEJAR, 'amo/cookie.txt');
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+    $out = curl_exec($curl);
+    $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $code = (int) $code;
+    $errors = [
+        301 => 'Moved permanently.',
+        400 => 'Wrong structure of the array of transmitted data, or invalid identifiers of custom fields.',
+        401 => 'Not Authorized. There is no account information on the server. You need to make a request to another server on the transmitted IP.',
+        403 => 'The account is blocked, for repeatedly exceeding the number of requests per second.',
+        404 => 'Not found.',
+        500 => 'Internal server error.',
+        502 => 'Bad gateway.',
+        503 => 'Service unavailable.'
+    ];
+    
+    if ($code < 200 || $code > 204) die( "Error $code. " . (isset($errors[$code]) ? $errors[$code] : 'Undefined error') );
+    
+    
+    $Response = json_decode($out, true);
+    pp($Response);
+    
+    $text = 'Примечание:
+        ';
+    
+    foreach ($user[$type] as $infos) {
+        $text .= '
+        ';
+        foreach ($infos as $info) {
+            $text .= $info . '
+            ';
+        }
+    }
+    
+
+    // Добавляем примечание к лиду
+    $data = [
+        [
+            "entity_id" => (int) $user['lead_id'],
+            "note_type" => "common",
+            "params" => [
+                "text" => $text,
+            ]
+        ]
+    ];
+    
+    $method = "/api/v4/leads/notes";
     
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -312,49 +340,4 @@ function amoSetLead($pipeline, $token_file, $subdomain, $client_id, $client_secr
     ];
     
     if ($code < 200 || $code > 204) die( "Error $code. " . (isset($errors[$code]) ? $errors[$code] : 'Undefined error') );
-    
-    
-    $Response = json_decode($out, true);
-    pp($Response);
-    
-    $ids = [];
-    
-    foreach ($Response as $res) {
-        $id = $res['id'];
-        
-        $data = [
-            "user_id" => 0,
-            "status_id" => (int) $status_id,
-        ];
-        
-        $method = "/api/v4/leads/unsorted/$id/accept";
-        
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_USERAGENT, 'amoCRM-API-client/1.0');
-        curl_setopt($curl, CURLOPT_URL, "https://$subdomain.amocrm.ru".$method);
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($curl, CURLOPT_HEADER, false);
-        curl_setopt($curl, CURLOPT_COOKIEFILE, 'amo/cookie.txt');
-        curl_setopt($curl, CURLOPT_COOKIEJAR, 'amo/cookie.txt');
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-        $out = curl_exec($curl);
-        $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $code = (int) $code;
-        $errors = [
-            301 => 'Moved permanently.',
-            400 => 'Wrong structure of the array of transmitted data, or invalid identifiers of custom fields.',
-            401 => 'Not Authorized. There is no account information on the server. You need to make a request to another server on the transmitted IP.',
-            403 => 'The account is blocked, for repeatedly exceeding the number of requests per second.',
-            404 => 'Not found.',
-            500 => 'Internal server error.',
-            502 => 'Bad gateway.',
-            503 => 'Service unavailable.'
-        ];
-        
-        if ($code < 200 || $code > 204) die( "Error $code. " . (isset($errors[$code]) ? $errors[$code] : 'Undefined error') );
-    }
 }
