@@ -20,9 +20,9 @@ if (isset($_GET["utm_term"]) && !isset($_COOKIE["utm_term"])) {
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="x-ua-compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/css/intlTelInput.css">
-    <link rel="stylesheet" href="/css/lib.css">
-    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="./css/intlTelInput.css">
+    <link rel="stylesheet" href="./css/lib.css">
+    <link rel="stylesheet" href="./css/style.css">
     <title>Бесплатный онлайн мастер-класс "Как найти прибыльный товар для продажи на Amazon"</title>
     <style>
         header .container .text p {
@@ -223,8 +223,8 @@ if (isset($_GET["utm_term"]) && !isset($_COOKIE["utm_term"])) {
             <b>Успейте зарегистрироваться, количество мест ограничено до 100 человек и возможность регистрации может быть закрыта в любой момент.</b>
         </footer>
     </main>
-    <script src="/js/lib.js"></script>
-    <script src="/js/script.js"></script>
+    <script src="./js/lib.js"></script>
+    <script src="./js/script.js"></script>
     <script
   src="https://code.jquery.com/jquery-3.5.1.js"
   integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
@@ -261,7 +261,7 @@ if (isset($_GET["utm_term"]) && !isset($_COOKIE["utm_term"])) {
                 if (!name || !email || !phone) return;
                 $.ajax({
                     method: "POST",
-                    url: "/send_to_webinar.php",
+                    url: "./send_to_webinar.php",
                     dataType: 'json',
                     data: {
                         name: name,
@@ -269,10 +269,10 @@ if (isset($_GET["utm_term"]) && !isset($_COOKIE["utm_term"])) {
                         phone: phone
                     },
                     success: () => {
-                        window.location.href = '/thanks.php';
+                        window.location.href = './thanks.php';
                     },
                     error: () => {
-                        window.location.href = '/thanks.php';
+                        window.location.href = './thanks.php';
                     }
                 });
             });
