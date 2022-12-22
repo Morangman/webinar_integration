@@ -6,15 +6,15 @@ require_once 'amo_access.php';
 $apiKey = $webinarApiKey;
 
 $userData = [
-    'name' => 'Test User 2',
-    'phone' => '0990000002',
-    'email' => 'dmitry.sinepolsky@gmail.com',
-    'sitename' => 'webinar_v33',
-    'utm_source' => 'utm_source',
-    'utm_medium' => 'utm_medium',
-    'utm_campaign' => 'utm_campaign',
-    'utm_term' => 'utm_term',
-    'utm_content' => 'utm_content',
+    'name' => $_REQUEST['name'],
+    'phone' => $_REQUEST['phone'],
+    'email' => $_REQUEST['email'],
+    'sitename' => 'newlevelcg',
+    'utm_source' => (isset($_COOKIE['utm_source'])?$_COOKIE['utm_source']:''),
+    'utm_medium' => (isset($_COOKIE['utm_medium'])?$_COOKIE['utm_medium']:''),
+    'utm_campaign' => (isset($_COOKIE['utm_campaign'])?$_COOKIE['utm_campaign']:''),
+    'utm_term' => (isset($_COOKIE['utm_term'])?$_COOKIE['utm_term']:''),
+    'utm_content' => (isset($_COOKIE['utm_content'])?$_COOKIE['utm_content']:''),
 ];
 
 $newAmoLead = amoSetRegisteredLead($pipeline, $token_file, $subdomain, $client_id, $client_secret, $code, $redirect_uri, $amo_status_registered_id, $userData);
