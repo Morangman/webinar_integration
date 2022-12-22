@@ -428,8 +428,8 @@
     <meta charset="UTF-8">
     <meta http-equiv="x-ua-compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="../css/lib.css">
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="./css/lib.css">
+    <link rel="stylesheet" href="./css/style.css">
     <title>Спасибо за регистарицию!</title>
     <style>
       @media all and (max-width: 575px) {
