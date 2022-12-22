@@ -7,9 +7,14 @@ $apiKey = $webinarApiKey;
 
 $userData = [
     'name' => 'Test User 2',
-    'phone' => '0990000000',
+    'phone' => '0990000002',
     'email' => 'dmitry.sinepolsky@gmail.com',
     'sitename' => 'webinar_v33',
+    'utm_source' => 'utm_source',
+    'utm_medium' => 'utm_medium',
+    'utm_campaign' => 'utm_campaign',
+    'utm_term' => 'utm_term',
+    'utm_content' => 'utm_content',
 ];
 
 $newAmoLead = amoSetRegisteredLead($pipeline, $token_file, $subdomain, $client_id, $client_secret, $code, $redirect_uri, $amo_status_registered_id, $userData);
@@ -31,11 +36,13 @@ $userData['name'] = $userData['name'] . ' _' . $newAmoLead['id'] . '_';
 
 addNewAttendee($userData, $apiKey); //добавление пользователя к вебинару
 
-try {
-    addNewAttendeeToLastWebinar($userData, getLastWebinar($apiKey), $apiKey); // добавление пользователя к последнему автовебинару
-} catch (\Exception $e) {
-    clog('error - активного автовебинара не обнаруженно!');
-}
+$lastWebinarAlias = getLastWebinar($apiKey);
+
+// try {
+    addNewAttendeeToLastWebinar($userData, $lastWebinarAlias, $apiKey); // добавление пользователя к последнему автовебинару
+// } catch (\Exception $e) {
+//     clog('error - активного автовебинара не обнаруженно!');
+// }
 
 
 ////////////////
@@ -73,10 +80,6 @@ function getLastWebinar($apiKey = null) {
             'key' => $apiKey,
             'action' => 'webinarsList',
             "params" => [
-                "fields" => [
-                    "name",
-                    "alias"
-                ],
                 "status" => "ACTIVE"
             ]
         ]);
@@ -85,14 +88,55 @@ function getLastWebinar($apiKey = null) {
         // вывод результатов
     
         // pp($res);
-    
-        $lastActiveWebinar = end($res['response']);
-
-        // $lastActiveWebinar = $res['response'][0];
-    
-        if ($lastActiveWebinar && isset($lastActiveWebinar['alias'])) {
-            return $lastActiveWebinar['alias'];
+        
+        $webinars = [];
+        
+        // название вебинаров которые нам не нужны
+        $excluded = [
+            'Постоянная вебинарная комната №1',
+            'тест автовеб',
+        ];
+        
+        $now = time();
+        
+        if ($res && isset($res['response']) && count($res)) {
+            foreach ($res['response'] as $webinar) {
+                if (!in_array($webinar['name'], $excluded)) {
+                    $webinar['start'] = strtotime($webinar['start']);
+                    
+                    if ($webinar['start'] > $now) {
+                        $webinars[] = $webinar;    
+                    }
+                }
+            }
         }
+        
+        $counts = array_column($webinars, 'start');
+        
+        // find index of min value
+        $index = array_search(min($counts), $counts, true);
+
+        // $closest = min(array_column($webinars, 'start'));
+        
+        if (isset($webinars[$index]) && isset($webinars[$index]['alias'])) {
+            $lastActiveWebinar = $webinars[$index]['alias'];
+        } else {
+            $lastActiveWebinar = null;
+        }
+        
+        pp($lastActiveWebinar);
+        
+        return $lastActiveWebinar;
+        
+        // pp($lastActiveWebinar);
+    
+        // $lastActiveWebinar = end($res['response']);
+
+        // // $lastActiveWebinar = $res['response'][0];
+    
+        // if ($lastActiveWebinar && isset($lastActiveWebinar['alias'])) {
+        //     return $lastActiveWebinar['alias'];
+        // }
     }
 
     return null;
@@ -184,12 +228,11 @@ function amoSetRegisteredLead($pipeline, $token_file, $subdomain, $client_id, $c
     $pipeline_id = $pipeline;
     $user_amo = 0;
     
-    $utm_source   = '';
-    $utm_content  = '';
-    $utm_medium   = '';
-    $utm_campaign = '';
-    $utm_term     = '';
-    $utm_referrer = '';
+    $utm_source   = $user['utm_source'];
+    $utm_content  = $user['utm_content'];
+    $utm_medium   = $user['utm_medium'];
+    $utm_campaign = $user['utm_campaign'];
+    $utm_term     = $user['utm_term'];
     
     $data = [
         [
@@ -231,7 +274,49 @@ function amoSetRegisteredLead($pipeline, $token_file, $subdomain, $client_id, $c
                         ]
                     ]
                 ]
-            ]
+            ],
+            "custom_fields_values" => [
+                [
+                    "field_code" => 'UTM_SOURCE',
+                    "values" => [
+                        [
+                            "value" => $utm_source
+                        ]
+                    ]
+                ],
+                [
+                    "field_code" => 'UTM_CONTENT',
+                    "values" => [
+                        [
+                            "value" => $utm_content
+                        ]
+                    ]
+                ],
+                [
+                    "field_code" => 'UTM_MEDIUM',
+                    "values" => [
+                        [
+                            "value" => $utm_medium
+                        ]
+                    ]
+                ],
+                [
+                    "field_code" => 'UTM_CAMPAIGN',
+                    "values" => [
+                        [
+                            "value" => $utm_campaign
+                        ]
+                    ]
+                ],
+                [
+                    "field_code" => 'UTM_TERM',
+                    "values" => [
+                        [
+                            "value" => $utm_term
+                        ]
+                    ]
+                ],
+            ],
         ]
     ];
     
@@ -273,8 +358,59 @@ function amoSetRegisteredLead($pipeline, $token_file, $subdomain, $client_id, $c
     
     $Response = json_decode($out, true);
     // pp($Response);
-
+    
     if ($Response && count($Response)) {
+
+        $text = 'Примечание:
+                ';
+        
+        foreach ($user as $key => $info) {
+            $text .= $key . ': ' . $info . '
+            ';
+        }
+        
+    
+        // Добавляем примечание к лиду
+        $data = [
+            [
+                "entity_id" => (int) $Response[0]['id'],
+                "note_type" => "common",
+                "params" => [
+                    "text" => $text,
+                ]
+            ]
+        ];
+    
+        $method = "/api/v4/leads/notes";
+        
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_USERAGENT, 'amoCRM-API-client/1.0');
+        curl_setopt($curl, CURLOPT_URL, "https://$subdomain.amocrm.ru".$method);
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_HEADER, false);
+        curl_setopt($curl, CURLOPT_COOKIEFILE, 'amo/cookie.txt');
+        curl_setopt($curl, CURLOPT_COOKIEJAR, 'amo/cookie.txt');
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+        $out = curl_exec($curl);
+        $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $code = (int) $code;
+        $errors = [
+            301 => 'Moved permanently.',
+            400 => 'Wrong structure of the array of transmitted data, or invalid identifiers of custom fields.',
+            401 => 'Not Authorized. There is no account information on the server. You need to make a request to another server on the transmitted IP.',
+            403 => 'The account is blocked, for repeatedly exceeding the number of requests per second.',
+            404 => 'Not found.',
+            500 => 'Internal server error.',
+            502 => 'Bad gateway.',
+            503 => 'Service unavailable.'
+        ];
+        
+        if ($code < 200 || $code > 204) die( "Error $code. " . (isset($errors[$code]) ? $errors[$code] : 'Undefined error') );
+
         foreach ($Response as $res) {
             $id = $res['id'];
             

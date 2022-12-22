@@ -11,7 +11,10 @@ $users = [];
 $chat_leads = [];
 $leads = [];
 
-$webinarUsers = getUsersFromWebinar(getLastWebinar($apiKey), $apiKey); // список учасников вебинара
+
+$lastWebinarAlias = getLastWebinar($apiKey);
+
+$webinarUsers = getUsersFromWebinar($lastWebinarAlias, $apiKey); // список учасников вебинара
 
 foreach ($webinarUsers as $u) {
     $users[$u['email']] = $u;
@@ -21,13 +24,13 @@ foreach ($webinarUsers as $u) {
     $users[$u['email']]['lead_id'] = (count($matches) > 1) ? (int)$matches[1] : '';
 }
 
-$leadsChatsData = getLastWebinarInfoChats(getLastWebinar($apiKey), $apiKey); //информация о чате последнего прошедшего вебинара
+$leadsChatsData = getLastWebinarInfoChats($lastWebinarAlias, $apiKey); //информация о чате последнего прошедшего вебинара
 
 foreach ($leadsChatsData as $c) {
     $chat_leads[$c[4]][] = $c;
 }
 
-$leadsVisitsData = getLastWebinarInfoVisits(getLastWebinar($apiKey), $apiKey); //информация о посещениях последнего прошедшего вебинара
+$leadsVisitsData = getLastWebinarInfoVisits($lastWebinarAlias, $apiKey); //информация о посещениях последнего прошедшего вебинара
 
 foreach ($leadsVisitsData as $l) {
     if (!isset($chat_leads[$l[1]])) {
@@ -64,11 +67,8 @@ function getLastWebinar($apiKey = null) {
             'key' => $apiKey,
             'action' => 'webinarsList',
             "params" => [
-                "fields" => [
-                    "name",
-                    "alias"
-                ],
                 "status" => "FINISHED",
+                // "date" => '2022-12-20',
                 "date" => date('Y-m-d'),
             ]
         ]);
@@ -77,14 +77,41 @@ function getLastWebinar($apiKey = null) {
         // вывод результатов
     
         pp($res);
+        
+        $now = time();
+        
+        if ($res && isset($res['response']) && count($res)) {
+            foreach ($res['response'] as $webinar) {
+                if (!in_array($webinar['name'], $excluded)) {
+                    $webinar['start'] = strtotime($webinar['start']);
+                    
+                    if ($webinar['start'] < $now) {
+                        $webinars[] = $webinar;    
+                    }
+                }
+            }
+        }
+        
+        $counts = array_column($webinars, 'start');
+        
+        // find index of min value
+        $index = array_search(max($counts), $counts, true);
+        
+        if (isset($res['response']) && isset($res['response'][$index])) {
+            return $res['response'][$index]['alias'];
+        } else {
+            return null;
+        }
     
-        $lastActiveWebinar = end($res['response']);
+        // $lastActiveWebinar = end($res['response']);
 
         // $lastActiveWebinar = $res['response'][0];
+        
+        // pp($lastActiveWebinar);
     
-        if ($lastActiveWebinar && isset($lastActiveWebinar['alias'])) {
-            return $lastActiveWebinar['alias'];
-        }
+        // if ($lastActiveWebinar && isset($lastActiveWebinar['alias'])) {
+        //     return $lastActiveWebinar['alias'];
+        // }
     }
 
     return null;
