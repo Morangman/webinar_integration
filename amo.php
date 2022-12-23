@@ -88,7 +88,7 @@ function getLastWebinar($apiKey = null) {
         
         if ($res && isset($res['response']) && count($res)) {
             foreach ($res['response'] as $webinar) {
-                if (!in_array($webinar['name'], $excluded) && !str_contains($webinar['name'], 'клон')) {
+                if (!in_array($webinar['name'], $excluded) && !(strpos($webinar['name'], 'клон') !== false)) {
                     $webinar['start'] = strtotime($webinar['start']);
                     
                     if ($webinar['start'] < $now) {
@@ -124,7 +124,7 @@ function getLastWebinar($apiKey = null) {
 }
 
 function getUsersFromWebinar($alias, $apiKey = null) {
-    if ($apiKey) {
+    if ($alias && $apiKey) {
         $data['request'] = json_encode([
             "key" => $apiKey,
             "action" =>"attendeesList",
@@ -155,7 +155,7 @@ function getUsersFromWebinar($alias, $apiKey = null) {
 }
 
 function getLastWebinarInfoChats($alias, $apiKey = null) {
-    if ($apiKey) {
+    if ($alias && $apiKey) {
         $data['request'] = json_encode([
             "key" => $apiKey,
             "action" =>"webinarsHistory",
@@ -180,7 +180,7 @@ function getLastWebinarInfoChats($alias, $apiKey = null) {
     return [];
 }
 function getLastWebinarInfoVisits($alias, $apiKey = null) {
-    if ($apiKey) {
+    if ($alias && $apiKey) {
         $data['request'] = json_encode([
             "key" => $apiKey,
             "action" =>"webinarsHistory",

@@ -38,11 +38,11 @@ addNewAttendee($userData, $apiKey); //добавление пользовате�
 
 $lastWebinarAlias = getLastWebinar($apiKey);
 
-// try {
+try {
     addNewAttendeeToLastWebinar($userData, $lastWebinarAlias, $apiKey); // добавление пользователя к последнему автовебинару
-// } catch (\Exception $e) {
-//     clog('error - активного автовебинара не обнаруженно!');
-// }
+} catch (\Exception $e) {
+    clog('error - активного автовебинара не обнаруженно!');
+}
 
 
 ////////////////
