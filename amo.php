@@ -80,9 +80,15 @@ function getLastWebinar($apiKey = null) {
         
         $now = time();
         
+        // название вебинаров которые нам не нужны
+        $excluded = [
+            'Постоянная вебинарная комната №1',
+            'тест автовеб',
+        ];
+        
         if ($res && isset($res['response']) && count($res)) {
             foreach ($res['response'] as $webinar) {
-                if (!in_array($webinar['name'], $excluded)) {
+                if (!in_array($webinar['name'], $excluded) && !str_contains($webinar['name'], 'клон')) {
                     $webinar['start'] = strtotime($webinar['start']);
                     
                     if ($webinar['start'] < $now) {
